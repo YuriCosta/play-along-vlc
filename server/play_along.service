@@ -1,0 +1,44 @@
+# Unit do systemd para o servidor Play Along.
+#
+# Instalacao (como root):
+#   useradd --system --no-create-home --shell /usr/sbin/nologin playalong
+#   mkdir -p /opt/play_along && cp play_along_server.py /opt/play_along/
+#   cp play_along.service /etc/systemd/system/
+#   systemctl daemon-reload
+#   systemctl enable --now play_along
+#
+# Ajuste a porta e os parametros na linha ExecStart. Logs: journalctl -u play_along -f
+
+[Unit]
+Description=Play Along - servidor de sincronizacao de reproducao do VLC
+Documentation=file:///opt/play_along/README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=playalong
+Group=playalong
+WorkingDirectory=/opt/play_along
+ExecStart=/usr/bin/python3 /opt/play_along/play_along_server.py --host 0.0.0.0 --port 8765
+Restart=on-failure
+RestartSec=3
+# Mostra o log do Python no journal sem atraso de buffer
+Environment=PYTHONUNBUFFERED=1
+
+# Endurecimento: o servidor so precisa de rede; nao grava nada em disco
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6
+LockPersonality=true
+MemoryDenyWriteExecute=true
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target
